@@ -1,0 +1,15 @@
+{
+  "name": "拉亞漢堡助理",
+  "short_name": "拉亞助理",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f39c12",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192.png?text=Laya",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
