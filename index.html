@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拉亞語音助理</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #fdf2e9; }
+        #status { font-size: 1.2em; color: #e67e22; margin: 20px 0; }
+        #voice-btn { width: 200px; height: 200px; border-radius: 50%; border: none; background: #f39c12; color: white; font-size: 1.5em; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        #result { margin-top: 30px; text-align: left; display: inline-block; background: white; padding: 20px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h1>拉亞漢堡製作助手</h1>
+    <div id="status">點擊按鈕後說出品項名稱</div>
+    <button id="voice-btn">按我說話</button>
+    <div id="result"></div>
+    <script src="app.js"></script>
+</body>
+</html>
