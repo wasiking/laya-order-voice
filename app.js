@@ -23,58 +23,59 @@ if (!SpeechRecognition) {
     recognition.continuous = true;
     recognition.interimResults = false;
 
-    // 保持其他變數不變
+ // ... 之前的變數宣告保持不變 ...
+
 btn.addEventListener('click', () => {
-    // 1. 先徹底停止所有語音和辨識，清空通道
+    // 1. 徹底清空之前的語音任務與辨識狀態，防止重複啟動錯誤
     window.speechSynthesis.cancel();
     try {
-        recognition.abort(); // 強制放棄當前辨識狀態，比 stop 更徹底
+        recognition.abort(); // 使用 abort() 比 stop() 更強效，能立即釋放資源
     } catch (e) {}
 
-    status.innerText = "準備啟動中...";
+    status.innerText = "系統重置中...";
 
-    // 2. 建立一個 500ms 的緩衝，給 iOS 切換音訊模式的時間
+    // 2. 給 iOS 0.5 秒的時間切換音訊模式（從喇叭回到麥克風）
     setTimeout(() => {
         try {
-            // 預熱一個極短的靜音，確保後續朗讀正常
+            // 預熱靜音播放，確保後續唸步驟有聲
             const wakeup = new SpeechSynthesisUtterance("");
             window.speechSynthesis.speak(wakeup);
 
-            // 啟動辨識
             recognition.start();
             
             btn.innerText = "監聽中...";
             btn.style.background = "#3498db";
             status.innerText = "已啟動，請說 Hey Laya 喚醒我";
+            console.log("辨識器已成功啟動");
         } catch (err) {
             console.error("啟動失敗:", err);
-            status.innerText = "啟動異常，請再試一次";
+            status.innerText = "啟動異常，請再按一次";
         }
     }, 500); 
 });
 
-// 修正重啟邏輯，避免無窮錯誤循環
+// 優化自動重啟，避免無窮報錯
 recognition.onend = () => {
     console.log("辨識停止");
-    // 只有在監聽模式下才嘗試重啟，並給予更長的延遲避開衝突
+    // 只有在持續監聽模式下，且沒有錯誤衝突時才重啟
     if (btn.innerText === "監聽中...") {
         setTimeout(() => {
             try { recognition.start(); } catch(e) {}
-        }, 800); 
+        }, 1000); // 增加延遲到 1 秒，避開系統頻繁啟動的限制
     }
 };
 
 recognition.onerror = (e) => {
-    // 當出現 no-speech 時，不要跳出錯誤訊息，默默讓它重啟即可
+    console.log("語音錯誤:", e.error);
     if (e.error === 'no-speech') {
-        console.log("未偵測到聲音，等待重啟...");
+        // no-speech 在安靜環境很常見，不需報錯，讓它自動重啟即可
+        console.log("未偵測到聲音，等待自動重啟...");
+    } else if (e.error === 'aborted') {
+        console.log("辨識被手動中止");
     } else {
-        console.error("語音錯誤:", e.error);
-        status.innerText = "錯誤: " + e.error;
+        status.innerText = "辨識異常，請重新點擊按鈕";
     }
 };
-}
-
 // findAndShowRecipe 與 speak 函數維持原樣
 
 function findAndShowRecipe(text) {
@@ -100,5 +101,6 @@ function speak(text) {
     msg.rate = 1.0;
     window.speechSynthesis.speak(msg);
 }
+
 
 
