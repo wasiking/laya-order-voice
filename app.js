@@ -7,27 +7,31 @@ const resultDiv = document.getElementById('result');
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (!SpeechRecognition) {
-    alert("您的瀏覽器不支援語音功能，請使用 Chrome 或 Edge");
+    status.innerText = "瀏覽器不支援語音辨識";
 } else {
     const recognition = new SpeechRecognition();
     recognition.lang = 'zh-TW';
 
-    //btn.onclick = () => {
-    btn.addEventListener('click', () => {
+    // 關鍵點擊事件：必須確保這裡的語法絕對正確
+    btn.addEventListener('click', function() {
+        // 1. 聲音預熱：解決 iPhone 沒聲音的關鍵
         try {
-            // 1. 預熱語音引擎 (iOS 必要步驟)
-            window.speechSynthesis.cancel();
             const wakeup = new SpeechSynthesisUtterance("");
             window.speechSynthesis.speak(wakeup);
-            
-            // 2. 啟動辨識
+        } catch (e) {
+            console.log("語音預熱跳過");
+        }
+
+        // 2. 啟動辨識
+        try {
             recognition.start();
             status.innerText = "正在聽您說話...";
-        } catch (e) {
-            status.innerText = "啟動失敗，請重新點擊";
-            console.error(e);
+        } catch (err) {
+            // 防止重複啟動的錯誤
+            recognition.stop();
+            setTimeout(() => recognition.start(), 200);
         }
-    }); // <-- 修正這裡：原本您寫的是 };
+    });
 
     recognition.onresult = (event) => {
         const text = event.results[0][0].transcript;
@@ -58,5 +62,6 @@ function speak(text) {
     window.speechSynthesis.speak(msg);
 
 }
+
 
 
