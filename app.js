@@ -34,49 +34,51 @@ if (!SpeechRecognition) {
     }
 
     recognition.onresult = (event) => {
-        const lastIndex = event.results.length - 1;
-        const text = event.results[lastIndex][0].transcript.trim().toLowerCase();
-        
-        console.log("偵測到：" + text);
+    // 取得最新一筆辨識文字
+    const text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+    console.log("偵測到：" + text);
+    status.innerText = "偵測中：" + text;
 
-        // 1. 檢查喚醒詞 (支援英文與中文諧音)
-        const wakeWords = ["hey laya", "laya", "嘿拉亞", "拉亞", "嘿拉雅", "go"];
-        const hasWakeWord = wakeWords.some(word => text.includes(word));
+    const wakeWords = ["hey laya", "laya", "嘿拉亞", "拉亞"];
+    const hasWakeWord = wakeWords.some(word => text.includes(word));
 
-        if (hasWakeWord) {
+    // 邏輯優化：只要聽到喚醒詞，或是已經處於喚醒狀態，就去搜尋
+    if (hasWakeWord || isAwake) {
+        if (hasWakeWord && !isAwake) {
             isAwake = true;
-            status.innerText = "我在聽，請說出品項...";
-            speak("在！請問要做什麼品項？");
-            
-            // 如果語音中「同時」包含了品項（例如：Hey Laya 起司堡）
-            // 則直接執行搜尋
-            checkAndFindRecipe(text);
-        } else if (isAwake) {
-            // 2. 如果已經被喚醒，則直接搜尋品項
-            checkAndFindRecipe(text);
+            // 這裡可以選擇不跳出 speak，直接讓使用者說下去，反應會更快
+            console.log("系統已喚醒");
         }
-    };
 
-    recognition.onend = () => {
-        recognition.start(); // 保持持續監聽
+        // 搜尋品項
+        const recipe = recipes.find(r => text.includes(r.name));
+        if (recipe) {
+            showAndSpeakRecipe(recipe);
+            // 關鍵點：執行完後立即重置狀態，等待下一次喚醒
+            isAwake = false; 
+        }
     };
 }
 
-function checkAndFindRecipe(text) {
-    const recipe = recipes.find(r => text.includes(r.name));
-    if (recipe) {
-        status.innerText = "正在查詢：" + recipe.name;
-        let content = `<h3>${recipe.name}</h3><p>麵包：${recipe.bread}</p><ul>`;
-        recipe.steps.forEach(s => content += `<li>${s}</li>`);
-        content += "</ul>";
-        resultDiv.innerHTML = content;
-        
-        speak(`${recipe.name}。${recipe.bread}。` + recipe.steps.join("。"));
-        
-        // 報完步驟後，重設喚醒狀態，等待下一次 Hey Laya
-        isAwake = false; 
+function showAndSpeakRecipe(recipe) {
+    // 1. 顯示內容
+    let content = `<h3>${recipe.name}</h3><p>麵包：${recipe.bread}</p><ul>`;
+    recipe.steps.forEach(s => content += `<li>${s}</li>`);
+    content += "</ul>";
+    resultDiv.innerHTML = content;
+
+    // 2. 語音朗讀
+    window.speechSynthesis.cancel();
+    const msg = new SpeechSynthesisUtterance(`${recipe.name}。${recipe.bread}。` + recipe.steps.join("。"));
+    msg.lang = 'zh-TW';
+    
+    // 朗讀結束後的處理 (iOS 必備：確保語音唸完後，辨識還活著)
+    msg.onend = () => {
         status.innerText = "請說 Hey Laya 喚醒我";
-    }
+        console.log("語音播報完畢，回到監聽狀態");
+    };
+    
+    window.speechSynthesis.speak(msg);
 }
 
 function speak(text) {
@@ -86,6 +88,7 @@ function speak(text) {
     window.speechSynthesis.speak(msg);
 
 }
+
 
 
 
