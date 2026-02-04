@@ -40,7 +40,7 @@ if (!SpeechRecognition) {
         console.log("偵測到：" + text);
 
         // 1. 檢查喚醒詞 (支援英文與中文諧音)
-        const wakeWords = ["hey laya", "laya", "嘿拉亞", "拉亞", "嘿拉雅"];
+        const wakeWords = ["hey laya", "laya", "嘿拉亞", "拉亞", "嘿拉雅", "go"];
         const hasWakeWord = wakeWords.some(word => text.includes(word));
 
         if (hasWakeWord) {
@@ -86,6 +86,7 @@ function speak(text) {
     window.speechSynthesis.speak(msg);
 
 }
+
 
 
 
