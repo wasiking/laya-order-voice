@@ -13,13 +13,21 @@ if (!SpeechRecognition) {
     recognition.lang = 'zh-TW';
 
     //btn.onclick = () => {
-    btn.addEventListener('click', () => {
-        // 預熱語音引擎（播放一個空字串）
-        const wakeup = new SpeechSynthesisUtterance("");
-        window.speechSynthesis.speak(wakeup);
-        recognition.start();
-        status.innerText = "正在聽您說話...";
-    };
+    tn.addEventListener('click', () => {
+        try {
+            // 1. 預熱語音引擎 (iOS 必要步驟)
+            window.speechSynthesis.cancel();
+            const wakeup = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(wakeup);
+            
+            // 2. 啟動辨識
+            recognition.start();
+            status.innerText = "正在聽您說話...";
+        } catch (e) {
+            status.innerText = "啟動失敗，請重新點擊";
+            console.error(e);
+        }
+    }); // <-- 修正這裡：原本您寫的是 };
 
     recognition.onresult = (event) => {
         const text = event.results[0][0].transcript;
@@ -50,3 +58,4 @@ function speak(text) {
     window.speechSynthesis.speak(msg);
 
 }
+
