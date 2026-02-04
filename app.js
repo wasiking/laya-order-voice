@@ -6,52 +6,76 @@ const status = document.getElementById('status');
 const resultDiv = document.getElementById('result');
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let isAwake = false; // 紀錄是否已被喚醒
+
 if (!SpeechRecognition) {
     status.innerText = "瀏覽器不支援語音辨識";
 } else {
     const recognition = new SpeechRecognition();
     recognition.lang = 'zh-TW';
+    recognition.continuous = true; 
+    recognition.interimResults = false; 
 
-    // 關鍵點擊事件：必須確保這裡的語法絕對正確
-    btn.addEventListener('click', function() {
-        // 1. 聲音預熱：解決 iPhone 沒聲音的關鍵
-        try {
-            const wakeup = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(wakeup);
-        } catch (e) {
-            console.log("語音預熱跳過");
-        }
-
-        // 2. 啟動辨識
-        try {
-            recognition.start();
-            status.innerText = "正在聽您說話...";
-        } catch (err) {
-            // 防止重複啟動的錯誤
-            recognition.stop();
-            setTimeout(() => recognition.start(), 200);
-        }
+    btn.addEventListener('click', () => {
+        startVoiceAssistant();
     });
 
+    function startVoiceAssistant() {
+        try {
+            window.speechSynthesis.cancel();
+            recognition.start();
+            status.innerText = "已啟動，請說 Hey Laya 喚醒我";
+            btn.style.background = "#3498db"; // 變成藍色表示待命
+            btn.innerText = "待命中心...";
+        } catch (err) {
+            console.log("辨識已在運行");
+        }
+    }
+
     recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript;
-        status.innerText = "您說的是：" + text;
-        findRecipe(text);
+        const lastIndex = event.results.length - 1;
+        const text = event.results[lastIndex][0].transcript.trim().toLowerCase();
+        
+        console.log("偵測到：" + text);
+
+        // 1. 檢查喚醒詞 (支援英文與中文諧音)
+        const wakeWords = ["hey laya", "laya", "嘿拉亞", "拉亞", "嘿拉雅"];
+        const hasWakeWord = wakeWords.some(word => text.includes(word));
+
+        if (hasWakeWord) {
+            isAwake = true;
+            status.innerText = "我在聽，請說出品項...";
+            speak("在！請問要做什麼品項？");
+            
+            // 如果語音中「同時」包含了品項（例如：Hey Laya 起司堡）
+            // 則直接執行搜尋
+            checkAndFindRecipe(text);
+        } else if (isAwake) {
+            // 2. 如果已經被喚醒，則直接搜尋品項
+            checkAndFindRecipe(text);
+        }
+    };
+
+    recognition.onend = () => {
+        recognition.start(); // 保持持續監聽
     };
 }
 
-function findRecipe(name) {
-    const recipe = recipes.find(r => name.includes(r.name));
+function checkAndFindRecipe(text) {
+    const recipe = recipes.find(r => text.includes(r.name));
     if (recipe) {
+        status.innerText = "正在查詢：" + recipe.name;
         let content = `<h3>${recipe.name}</h3><p>麵包：${recipe.bread}</p><ul>`;
         recipe.steps.forEach(s => content += `<li>${s}</li>`);
         content += "</ul>";
         resultDiv.innerHTML = content;
         
-        // 語音朗讀
-        speak(`${recipe.name}的製作方式如下：${recipe.bread}。` + recipe.steps.join("。"));
-    } else {
-        speak("找不到這個品項，請再說一次品項名稱。");
+        speak(`${recipe.name}。${recipe.bread}。` + recipe.steps.join("。"));
+        
+        // 報完步驟後，重設喚醒狀態，等待下一次 Hey Laya
+        isAwake = false; 
+        status.innerText = "請說 Hey Laya 喚醒我";
     }
 }
 
@@ -62,6 +86,7 @@ function speak(text) {
     window.speechSynthesis.speak(msg);
 
 }
+
 
 
 
