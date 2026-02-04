@@ -23,63 +23,56 @@ if (!SpeechRecognition) {
     recognition.continuous = true;
     recognition.interimResults = false;
 
-    btn.addEventListener('click', () => {
-        // 解決「按兩次」的關鍵：先重設語音與辨識狀態
-        window.speechSynthesis.cancel(); 
-        
+    // 保持其他變數不變
+btn.addEventListener('click', () => {
+    // 1. 先徹底停止所有語音和辨識，清空通道
+    window.speechSynthesis.cancel();
+    try {
+        recognition.abort(); // 強制放棄當前辨識狀態，比 stop 更徹底
+    } catch (e) {}
+
+    status.innerText = "準備啟動中...";
+
+    // 2. 建立一個 500ms 的緩衝，給 iOS 切換音訊模式的時間
+    setTimeout(() => {
         try {
-            recognition.stop(); // 先強迫停止舊的，確保這次是乾淨的啟動
-        } catch(e) {}
+            // 預熱一個極短的靜音，確保後續朗讀正常
+            const wakeup = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(wakeup);
 
-        // 建立一個微小延遲再啟動，避開 iOS 的音訊切換衝突
+            // 啟動辨識
+            recognition.start();
+            
+            btn.innerText = "監聽中...";
+            btn.style.background = "#3498db";
+            status.innerText = "已啟動，請說 Hey Laya 喚醒我";
+        } catch (err) {
+            console.error("啟動失敗:", err);
+            status.innerText = "啟動異常，請再試一次";
+        }
+    }, 500); 
+});
+
+// 修正重啟邏輯，避免無窮錯誤循環
+recognition.onend = () => {
+    console.log("辨識停止");
+    // 只有在監聽模式下才嘗試重啟，並給予更長的延遲避開衝突
+    if (btn.innerText === "監聽中...") {
         setTimeout(() => {
-            try {
-                recognition.start();
-                status.innerText = "已啟動，請說 Hey Laya 喚醒我";
-                btn.innerText = "監聽中...";
-                btn.style.background = "#3498db"; 
-                
-                // 預熱靜音播放放在啟動之後，避免佔用麥克風開啟時間
-                const wakeup = new SpeechSynthesisUtterance("");
-                window.speechSynthesis.speak(wakeup);
-            } catch (e) {
-                console.log("啟動辨識失敗:", e);
-            }
-        }, 150); 
-    });
+            try { recognition.start(); } catch(e) {}
+        }, 800); 
+    }
+};
 
-    recognition.onresult = (event) => {
-        const text = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-        // 更新 UI 讓你知道「它真的有聽到」
-        status.innerText = "偵測中：" + text; 
-        console.log("偵測到語音：" + text);
-
-        const wakeWords = ["hey laya", "laya", "嘿拉亞", "拉亞", "來啊"];
-        const hasWakeWord = wakeWords.some(word => text.includes(word));
-
-        if (hasWakeWord) {
-            isAwake = true;
-            speak("我在！請問要查詢什麼？");
-        } else if (isAwake) {
-            findAndShowRecipe(text);
-        }
-    };
-
-    recognition.onend = () => {
-        // 只有在非錯誤關閉的情況下才自動重啟
-        console.log("辨識停止");
-        // 延遲重啟，防止進入死循環報錯
-        if (btn.innerText === "監聽中...") {
-            setTimeout(() => { try { recognition.start(); } catch(e) {} }, 500);
-        }
-    };
-
-    recognition.onerror = (e) => {
+recognition.onerror = (e) => {
+    // 當出現 no-speech 時，不要跳出錯誤訊息，默默讓它重啟即可
+    if (e.error === 'no-speech') {
+        console.log("未偵測到聲音，等待重啟...");
+    } else {
         console.error("語音錯誤:", e.error);
-        if (e.error === 'no-speech') {
-            status.innerText = "沒聽到聲音，請大聲一點";
-        }
-    };
+        status.innerText = "錯誤: " + e.error;
+    }
+};
 }
 
 // findAndShowRecipe 與 speak 函數維持原樣
@@ -107,4 +100,5 @@ function speak(text) {
     msg.rate = 1.0;
     window.speechSynthesis.speak(msg);
 }
+
 
