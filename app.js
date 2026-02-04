@@ -13,7 +13,7 @@ if (!SpeechRecognition) {
     recognition.lang = 'zh-TW';
 
     //btn.onclick = () => {
-    tn.addEventListener('click', () => {
+    btn.addEventListener('click', () => {
         try {
             // 1. 預熱語音引擎 (iOS 必要步驟)
             window.speechSynthesis.cancel();
@@ -58,4 +58,5 @@ function speak(text) {
     window.speechSynthesis.speak(msg);
 
 }
+
 
