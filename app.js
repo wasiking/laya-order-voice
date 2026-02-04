@@ -12,7 +12,11 @@ if (!SpeechRecognition) {
     const recognition = new SpeechRecognition();
     recognition.lang = 'zh-TW';
 
-    btn.onclick = () => {
+    //btn.onclick = () => {
+    btn.addEventListener('click', () => {
+        // 預熱語音引擎（播放一個空字串）
+        const wakeup = new SpeechSynthesisUtterance("");
+        window.speechSynthesis.speak(wakeup);
         recognition.start();
         status.innerText = "正在聽您說話...";
     };
@@ -44,4 +48,5 @@ function speak(text) {
     const msg = new SpeechSynthesisUtterance(text);
     msg.lang = 'zh-TW';
     window.speechSynthesis.speak(msg);
+
 }
