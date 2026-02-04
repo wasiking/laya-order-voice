@@ -23,29 +23,22 @@ if (!SpeechRecognition) {
     recognition.continuous = false;
     recognition.interimResults = false;
 
-    // 2. 點擊事件 (iOS 語音解鎖的核心)
+    // --- 關鍵修改：點擊事件 ---
     btn.addEventListener('click', () => {
-        // --- 核心步驟 1：立即清理並解鎖音訊 ---
-        window.speechSynthesis.cancel(); 
-        const wakeup = new SpeechSynthesisUtterance(""); 
-        window.speechSynthesis.speak(wakeup); // 必須在點擊最前端，確保 iOS 認可
+        // 第一步：立即取消所有語音並播放一個「空聲音」來解鎖 iOS 權限
+        window.speechSynthesis.cancel();
+        const unlock = new SpeechSynthesisUtterance(" ");
+        window.speechSynthesis.speak(unlock); 
 
-        // --- 核心步驟 2：確保辨識狀態乾淨 ---
-        try {
-            recognition.stop();
-        } catch (e) {}
+        // 第二步：停止舊的辨識
+        try { recognition.stop(); } catch(e) {}
 
-        // 3. 更新 UI
         status.innerText = "正在聽您說話...";
         btn.innerText = "錄音中...";
         btn.style.background = "#e67e22";
 
-        // 4. 啟動辨識 (緊接在點擊之後，不使用延遲)
-        try {
-            recognition.start();
-        } catch (e) {
-            console.log("辨識重啟中...");
-        }
+        // 第三步：啟動辨識
+        recognition.start();
     });
 
     recognition.onresult = (event) => {
@@ -60,12 +53,10 @@ if (!SpeechRecognition) {
     };
 
     recognition.onerror = (e) => {
-        console.log("辨識錯誤:", e.error);
         if (e.error === 'no-speech') status.innerText = "沒聽到聲音，請再試一次";
     };
 }
 
-// 5. 搜尋邏輯
 function findAndShowRecipe(name) {
     const recipe = recipes.find(r => name.includes(r.name));
     if (recipe) {
@@ -74,7 +65,7 @@ function findAndShowRecipe(name) {
         content += "</ul>";
         resultDiv.innerHTML = content;
         
-        // 朗讀步驟
+        // 朗讀結果
         speak(`${recipe.name}，${recipe.bread}。` + recipe.steps.join("。"));
     } else {
         resultDiv.innerHTML = "找不到品項";
@@ -82,14 +73,15 @@ function findAndShowRecipe(name) {
     }
 }
 
-// 6. 語音執行 (TTS)
 function speak(text) {
-    // 再次執行 cancel 確保頻道乾淨
+    // 確保在朗讀新內容前先清空頻道
     window.speechSynthesis.cancel();
     
     const msg = new SpeechSynthesisUtterance(text);
     msg.lang = 'zh-TW';
-    msg.volume = 1.0; // 確保音量滿格
-    msg.rate = 1.1;   // 稍微加快一點速度更像真人
+    msg.volume = 1.0; 
+    msg.rate = 1.0;   
+    
+    // iOS 有時需要這行來確保語音被排入隊列
     window.speechSynthesis.speak(msg);
 }
